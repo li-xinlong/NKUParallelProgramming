@@ -7,7 +7,7 @@
 #include <bitset>
 #include <Windows.h>
 #include <emmintrin.h>  //SSE2
-#define idlength 25205248
+#define idlength 25214976
 using namespace std;
 int main()
 {
@@ -87,31 +87,73 @@ int main()
 	{
 		int num = query[i].size();
 		vector<unsigned int>result;
-		bitset<idlength>* bits = new bitset<idlength>[num];
+		bitset<idlength>* bits_first = new bitset<idlength>[num];
+		//建立一级索引
 		for (int j = 0; j < num; j++)
 		{
 			for (int k = 0; k < index[query[i][j]].size(); k++)
 			{
-				bits[j].set(index[query[i][j]][k]);
+				bits_first[j].set(index[query[i][j]][k]);
+			}
+		}
+		//建立二级索引
+		bitset<idlength / 128>* bits_second = new bitset<idlength / 128>[num];
+		for (int j = 0; j < num; j++)
+		{
+			for (int k = 0; k < idlength / 128; k++)
+			{
+				for (int m = 128 * k; m < 128 * (k + 1); m++)
+				{
+					if (bits_first[j][m] == 1)
+					{
+						bits_second[j].set(k);
+						break;
+					}
+				}
 			}
 		}
 		for (int j = 1; j < num; j++)
 		{
-			for (int k = 0; k < idlength / 128; k++)
+			for (int k = 0; k < idlength / 128 / 128; k++)
 			{
-				int* data1 = (int*)&bits[0];
-				int* add1 = (int*)(data1 + 4 * k);
-				__m128i xmm_data1 = _mm_loadu_si128((__m128i*)add1);
-				int* data2 = (int*)&bits[j];
-				int* add2 = (int*)(data2 + 4 * k);
-				__m128i xmm_data2 = _mm_loadu_si128((__m128i*)add2);
-				xmm_data1 = _mm_and_si128(xmm_data1, xmm_data2);
-				_mm_storeu_si128((__m128i*)add1, xmm_data1);
+				int* data_second1 = (int*)&bits_second[0];//每个整型32位，128位8个整型
+				// 使用 sse2 加载数据到寄存器
+				int* add_second1 = (int*)(data_second1 + 4 * k);
+				__m128i xmm_data_second1 = _mm_loadu_si128((__m128i*)add_second1);
+				// 定义一个数组用于存储第二个位集的数据
+				int* data_second2 = (int*)&bits_second[j];//每个整型32位，128位8个整型
+				int* add_second2 = (int*)(data_second2 + 4 * k);
+				// 使用 sse2 加载数据到第二个寄存器
+				__m128i xmm_data_second2 = _mm_loadu_si128((__m128i*)add_second2);
+				xmm_data_second1 = _mm_and_si128(xmm_data_second1, xmm_data_second2);
+				_mm_storeu_si128((__m128i*)add_second1, xmm_data_second1);
+				for (int m = k * 128; m < 128; m++) {
+					if (bits_second[j][m])
+					{
+						int* data1 = (int*)&bits_first[0];//每个整型32位，128位8个整型
+						// 使用 sse2 加载数据到寄存器
+						int* add1 = (int*)(data1 + 4 * k);
+						__m128i xmm_data1 = _mm_loadu_si128((__m128i*)add1);
+						// 定义一个数组用于存储第二个位集的数据
+						int* data2 = (int*)&bits_first[j];//每个整型32位，128位8个整型
+						int* add2 = (int*)(data2 + 4 * k);
+						// 使用 sse2 加载数据到第二个寄存器
+						__m128i xmm_data2 = _mm_loadu_si128((__m128i*)add2);
+						xmm_data1 = _mm_and_si128(xmm_data1, xmm_data2);
+						_mm_storeu_si128((__m128i*)add1, xmm_data1);
+					}
+					else {
+						int* data1 = (int*)&bits_first[0];//每个整型32位，128位8个整型
+						int* add1 = (int*)(data1 + 4 * k);
+						__m128i zero_vector = _mm_setzero_si128();
+						_mm_storeu_si128((__m128i*)add1, zero_vector);
+					}
+				}
 			}
 		}
 		for (int j = 0; j < idlength; j++)
 		{
-			if (bits[0][j] == 1)
+			if (bits_first[0][j] == 1)
 			{
 				result.push_back(j);
 			}

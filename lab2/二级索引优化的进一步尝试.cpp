@@ -7,7 +7,7 @@
 #include <bitset>
 #include <Windows.h>
 #include <emmintrin.h>  //SSE2
-#define idlength 25205248
+#define idlength 25214976
 using namespace std;
 int main()
 {
@@ -100,15 +100,13 @@ int main()
 		bitset<idlength / 128>* bits_second = new bitset<idlength / 128>[num];
 		for (int j = 0; j < num; j++)
 		{
+			long* temp = (long*)&bits_first[j];
 			for (int k = 0; k < idlength / 128; k++)
 			{
-				for (int m = 128 * k; m < 128 * (k + 1); m++)
+				bitset<128>* bitset_Temp = (bitset<128>*)(temp + k * 2);
+				if (*bitset_Temp == 1)
 				{
-					if (bits_first[j][m] == 1)
-					{
-						bits_second[j].set(k);
-						break;
-					}
+					bits_second[j].set(k);
 				}
 			}
 		}
@@ -116,6 +114,7 @@ int main()
 		{
 			for (int k = 0; k < idlength / 128; k++)
 			{
+
 				if (bits_second[j][k])
 				{
 					int* data1 = (int*)&bits_first[0];//每个整型32位，128位8个整型
@@ -136,6 +135,7 @@ int main()
 					__m128i zero_vector = _mm_setzero_si128();
 					_mm_storeu_si128((__m128i*)add1, zero_vector);
 				}
+
 			}
 		}
 		for (int j = 0; j < idlength; j++)

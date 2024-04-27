@@ -95,18 +95,15 @@ int main()
 				bits[j].set(index[query[i][j]][k]);
 			}
 		}
+		/*for (int j = 1; j < num; j++)
+		{
+			bits[0] &= bits[j];
+		}*/
 		for (int j = 1; j < num; j++)
 		{
-			for (int k = 0; k < idlength / 128; k++)
+			for (int k = 0; k < idlength; k++)
 			{
-				int* data1 = (int*)&bits[0];
-				int* add1 = (int*)(data1 + 4 * k);
-				__m128i xmm_data1 = _mm_loadu_si128((__m128i*)add1);
-				int* data2 = (int*)&bits[j];
-				int* add2 = (int*)(data2 + 4 * k);
-				__m128i xmm_data2 = _mm_loadu_si128((__m128i*)add2);
-				xmm_data1 = _mm_and_si128(xmm_data1, xmm_data2);
-				_mm_storeu_si128((__m128i*)add1, xmm_data1);
+				bits[0][k] = bits[0][k] * bits[j][k];
 			}
 		}
 		for (int j = 0; j < idlength; j++)

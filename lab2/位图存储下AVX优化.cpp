@@ -6,7 +6,7 @@
 #include <algorithm> 
 #include <bitset>
 #include <Windows.h>
-#include <emmintrin.h>  //SSE2
+#include <immintrin.h>  // AVX
 #define idlength 25205248
 using namespace std;
 int main()
@@ -35,22 +35,17 @@ int main()
 		return 1;
 	}
 	vector<vector<unsigned int>>index;
-	for (unsigned int i = 0; !readIndex.eof(); ++i) {
-		unsigned int n; // 数组的长度
-		readIndex.read(reinterpret_cast<char*>(&n), sizeof(n)); // 读取数组长度
-		vector<unsigned int> array; // 创建一个容器来存储数组元素
-		unsigned int a;
-		for (unsigned int j = 0; j < n; j++)
-		{
-			readIndex.read(reinterpret_cast<char*>(&a), sizeof(a));
-			array.push_back(a);
-		}
-		if (array.size() != n)
+	unsigned int n; // 数组的长度
+	int i = 0;
+	while (readIndex.read(reinterpret_cast<char*>(&n), sizeof(n))) {
+		vector<unsigned int> array(n); // 创建一个容器来存储数组元素
+		if (!readIndex.read(reinterpret_cast<char*>(array.data()), n * sizeof(unsigned int)))
 		{
 			cerr << "读取ExpIndex第" << i << "数组失败" << endl;
 		}
 		sort(array.begin(), array.end());
 		index.push_back(array);
+		i++;
 	}
 	// 关闭文件流
 	readIndex.close();
@@ -97,23 +92,31 @@ int main()
 		}
 		for (int j = 1; j < num; j++)
 		{
-			for (int k = 0; k < idlength / 128; k++)
+			for (int k = 0; k < idlength / 256; k++)
 			{
 				int* data1 = (int*)&bits[0];
-				int* add1 = (int*)(data1 + 4 * k);
-				__m128i xmm_data1 = _mm_loadu_si128((__m128i*)add1);
+				int* add1 = (int*)(data1 + 8 * k);
+				__m256i xmm_data1 = _mm256_loadu_si256((__m256i*)add1);
 				int* data2 = (int*)&bits[j];
-				int* add2 = (int*)(data2 + 4 * k);
-				__m128i xmm_data2 = _mm_loadu_si128((__m128i*)add2);
-				xmm_data1 = _mm_and_si128(xmm_data1, xmm_data2);
-				_mm_storeu_si128((__m128i*)add1, xmm_data1);
+				int* add2 = (int*)(data2 + 8 * k);
+				__m256i xmm_data2 = _mm256_loadu_si256((__m256i*)add2);
+				xmm_data1 = _mm256_and_si256(xmm_data1, xmm_data2);
+				_mm256_storeu_si256((__m256i*)add1, xmm_data1);
 			}
 		}
-		for (int j = 0; j < idlength; j++)
+		int* address = (int*)&bits[0];
+		for (int j = 0; j < idlength / 256; j++)
 		{
-			if (bits[0][j] == 1)
+			bitset<256>* temp = (bitset<256>*)(address + j * 8);
+			if (*temp != 0)
 			{
-				result.push_back(j);
+				for (int k = j * 256; k < 256 * (j + 1); k++)
+				{
+					if (bits[0][k])
+					{
+						result.push_back(k);
+					}
+				}
 			}
 		}
 		results.push_back(result);

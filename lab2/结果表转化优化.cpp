@@ -109,11 +109,19 @@ int main()
 				_mm_storeu_si128((__m128i*)add1, xmm_data1);
 			}
 		}
-		for (int j = 0; j < idlength; j++)
+		int* address = (int*)&bits[0];
+		for (int j = 0; j < idlength / 128; j++)
 		{
-			if (bits[0][j] == 1)
+			bitset<128>* temp = (bitset<128>*)(address + j * 4);
+			if (*temp != 0)
 			{
-				result.push_back(j);
+				for (int k = j * 128; k < 128 * (j + 1); k++)
+				{
+					if (bits[0][k])
+					{
+						result.push_back(k);
+					}
+				}
 			}
 		}
 		results.push_back(result);

@@ -35,22 +35,17 @@ int main()
 		return 1;
 	}
 	vector<vector<unsigned int>>index;
-	for (unsigned int i = 0; !readIndex.eof(); ++i) {
-		unsigned int n; // 数组的长度
-		readIndex.read(reinterpret_cast<char*>(&n), sizeof(n)); // 读取数组长度
-		vector<unsigned int> array; // 创建一个容器来存储数组元素
-		unsigned int a;
-		for (unsigned int j = 0; j < n; j++)
-		{
-			readIndex.read(reinterpret_cast<char*>(&a), sizeof(a));
-			array.push_back(a);
-		}
-		if (array.size() != n)
+	unsigned int n; // 数组的长度
+	int i = 0;
+	while (readIndex.read(reinterpret_cast<char*>(&n), sizeof(n))) {
+		vector<unsigned int> array(n); // 创建一个容器来存储数组元素
+		if (!readIndex.read(reinterpret_cast<char*>(array.data()), n * sizeof(unsigned int)))
 		{
 			cerr << "读取ExpIndex第" << i << "数组失败" << endl;
 		}
 		sort(array.begin(), array.end());
 		index.push_back(array);
+		i++;
 	}
 	// 关闭文件流
 	readIndex.close();
@@ -109,11 +104,19 @@ int main()
 				_mm_storeu_si128((__m128i*)add1, xmm_data1);
 			}
 		}
-		for (int j = 0; j < idlength; j++)
+		int* address = (int*)&bits[0];
+		for (int j = 0; j < idlength / 128; j++)
 		{
-			if (bits[0][j] == 1)
+			bitset<128>* temp = (bitset<128>*)(address + j * 4);
+			if (*temp != 0)
 			{
-				result.push_back(j);
+				for (int k = j * 128; k < 128 * (j + 1); k++)
+				{
+					if (bits[0][k])
+					{
+						result.push_back(k);
+					}
+				}
 			}
 		}
 		results.push_back(result);
