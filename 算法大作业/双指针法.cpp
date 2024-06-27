@@ -102,11 +102,7 @@ int main() {
 	}
 
 	QueryPerformanceCounter(&end);
-	interval = static_cast<double>(end.QuadPart - end_f.QuadPart) / frequency.QuadPart;
+	interval = static_cast<double>(end.QuadPart - start.QuadPart) / frequency.QuadPart;
 	cout << "代码执行时间: " << interval << " 秒" << endl;
-	for (int i = 0; i < results.size(); i++)
-	{
-		cout << results[i].size() << endl;
-	}
 	return 0;
 }

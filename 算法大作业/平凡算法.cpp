@@ -106,12 +106,9 @@ int main()
 	// 结束计时
 	QueryPerformanceCounter(&end);
 	// 计算时间间隔
-	interval = static_cast<double>(end.QuadPart - end_f.QuadPart) / frequency.QuadPart;
+	interval = static_cast<double>(end.QuadPart - start.QuadPart) / frequency.QuadPart;
 
 	std::cout << "代码执行时间: " << interval << " 秒" << std::endl;
-	for (int i = 0; i < results.size(); i++)
-	{
-		cout << results[i].size() << endl;
-	}
 	return 0;
 }
+
